@@ -1,0 +1,27 @@
+{
+  "name": "rhino-ar-relay",
+  "version": "1.0.0",
+  "description": "WebSocket relay server for Rhino AR Viewer - connects Grasshopper to mobile AR clients",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "websocket",
+    "socket.io",
+    "rhino",
+    "grasshopper",
+    "ar"
+  ],
+  "author": "McMuff86",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5"
+  }
+}
