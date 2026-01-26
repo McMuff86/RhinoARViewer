@@ -73,32 +73,239 @@
 | Komponente | Technologie | Version |
 |------------|-------------|---------|
 | **Android App** | Unity | 2022.3 LTS |
-| **AR Framework** | AR Foundation + ARCore | 5.x |
-| **Networking** | Socket.IO Unity | latest |
-| **Relay Server** | Node.js + Socket.IO | 18+ / 4.x |
-| **GH Plugin** | C# (.NET 7) | - |
-| **Mesh Format** | JSON (MVP) → Binary (später) | - |
+| **AR Framework** | AR Foundation + ARCore | 5.1.x |
+| **Networking** | Socket.IO Unity | 1.0.x |
+| **Relay Server** | Node.js + Socket.IO | 20 LTS / 4.7.x |
+| **GH Plugin** | C# (.NET 7) | Rhino 8 |
+| **Mesh Format** | JSON (MVP) → Binary (später) | v1 |
+
+---
+
+## 📱 Android Requirements
+
+| Requirement | Wert | Begründung |
+|-------------|------|------------|
+| **Min SDK** | API 26 (Android 8.0) | ARCore Requirement |
+| **Target SDK** | API 34 (Android 14) | Play Store Requirement 2024+ |
+| **ARCore Support** | Required | Kein Fallback ohne AR |
+| **Kamera Permission** | Required | AR braucht Kamera |
+| **Internet Permission** | Required | WebSocket-Verbindung |
+| **RAM** | Min 3GB empfohlen | Mesh-Rendering |
+
+**Getestete Geräte (Ziel):**
+- Samsung Galaxy S21+ oder neuer
+- Google Pixel 6 oder neuer
+
+---
+
+## 🔒 Security Konzept
+
+### MVP (Phase 1-7)
+- **Room Codes**: 6-stellige alphanumerische Codes (z.B. `A3X9K2`)
+- **Code Expiry**: Rooms verfallen nach 24h Inaktivität
+- **Rate Limiting**: Max 10 connections/IP/minute
+- **Keine Authentifizierung**: Wer den Code kennt, kann joinen
+
+### Post-MVP (später)
+- [ ] JWT-basierte Auth für persistente Sessions
+- [ ] Ende-zu-Ende Verschlüsselung für Mesh-Daten
+- [ ] IP-Whitelist Option für Enterprise
+
+### Threat Model
+| Threat | Mitigation |
+|--------|------------|
+| Room Code Brute-Force | Rate Limiting + 6-char = 2.1B Kombinationen |
+| DoS auf Server | Rate Limiting + Max Connections per Room (10) |
+| Malformed Mesh Data | JSON Schema Validation + Max Size Limit |
+| Man-in-the-Middle | HTTPS/WSS in Production |
+
+---
+
+## 📊 Performance Constraints
+
+### Mesh-Limits
+
+| Limit | Wert | Begründung |
+|-------|------|------------|
+| **Max Vertices** | 65.535 | Unity 16-bit Index Buffer |
+| **Max Triangles** | 100.000 | Mobile GPU Performance |
+| **Max Mesh Size (JSON)** | 5 MB | WebSocket Message Limit |
+| **Max Meshes/Scene** | 10 | Memory Constraints |
+| **Update Rate** | 10 Hz | Netzwerk + Rendering |
+
+### Performance Targets
+
+| Metrik | Ziel | Messung |
+|--------|------|---------|
+| **Latenz (GH → App)** | < 500ms | Timestamp Delta |
+| **Frame Rate** | ≥ 30 FPS | Unity Profiler |
+| **App Start → AR Ready** | < 5s | Stopwatch |
+| **Mesh Update → Render** | < 200ms | Unity Profiler |
+| **Memory Usage** | < 500 MB | Android Profiler |
+
+### Mesh-Größen Referenz
+```
+1.000 Vertices  ≈  50 KB JSON  → Instant
+10.000 Vertices ≈ 500 KB JSON  → ~100ms
+50.000 Vertices ≈ 2.5 MB JSON  → ~300ms
+```
+
+---
+
+## 📡 Protokoll-Spezifikation (v1)
+
+### Message Format
+
+```typescript
+// Base Message
+interface Message {
+  version: 1;
+  type: 'mesh-update' | 'ping' | 'pong' | 'error' | 'room-info';
+  timestamp: number;  // Unix ms
+  roomCode: string;
+}
+
+// Mesh Update
+interface MeshUpdate extends Message {
+  type: 'mesh-update';
+  meshId: string;      // UUID für Multi-Mesh Support
+  action: 'create' | 'update' | 'delete';
+  data?: MeshData;
+}
+
+interface MeshData {
+  vertices: number[];   // [x,y,z, x,y,z, ...] - Rhino coords (Z-up)
+  triangles: number[];  // [v0,v1,v2, ...]
+  normals?: number[];   // Optional
+  colors?: number[];    // Optional [r,g,b,a, ...] 0-1 range
+  transform?: {         // Optional Transform
+    position: [number, number, number];
+    rotation: [number, number, number, number];  // Quaternion
+    scale: [number, number, number];
+  };
+}
+
+// Error
+interface ErrorMessage extends Message {
+  type: 'error';
+  code: 'INVALID_MESH' | 'ROOM_FULL' | 'RATE_LIMITED' | 'MESH_TOO_LARGE';
+  message: string;
+}
+```
+
+### Coordinate Conversion
+```
+Rhino (Z-up)  →  Unity (Y-up)
+X             →  X
+Y             →  Z
+Z             →  Y
+
+Scale: Rhino mm → Unity m (÷ 1000)
+```
+
+---
+
+## 🛡️ Error Handling Strategy
+
+### Connection Errors
+
+| Error | Client Behavior | Server Behavior |
+|-------|-----------------|-----------------|
+| **Connection Lost** | Auto-reconnect (3x, exp. backoff) | Remove from room after 30s |
+| **Invalid Room Code** | Show error, prompt re-enter | Return `INVALID_ROOM` |
+| **Room Full** | Show error, suggest new room | Return `ROOM_FULL` |
+| **Server Unreachable** | Show offline mode prompt | N/A |
+
+### Data Errors
+
+| Error | Handling |
+|-------|----------|
+| **Invalid JSON** | Log error, skip message, request resend |
+| **Mesh Too Large** | Reject with `MESH_TOO_LARGE`, suggest decimation |
+| **Invalid Vertices** | Skip mesh, show warning in app |
+| **Missing Fields** | Use defaults where possible, else skip |
+
+### Fallback Behaviors
+
+| Scenario | Fallback |
+|----------|----------|
+| **QR nicht erkannt** | Manuelles Tap-to-Place |
+| **ARCore nicht verfügbar** | App-Exit mit Hinweis |
+| **Mesh Update fehlgeschlagen** | Behalte letzten gültigen Mesh |
+| **Server nicht erreichbar** | Zeige zuletzt empfangene Meshes (read-only) |
+
+---
+
+## 🧪 Testing Strategy
+
+### Unit Tests
+
+| Komponente | Test Framework | Coverage Ziel |
+|------------|----------------|---------------|
+| **Relay Server** | Jest | 80% |
+| **GH Component** | xUnit | 70% |
+| **Unity (Logic)** | Unity Test Framework | 60% |
+
+### Test Cases (Priorität)
+
+**P0 - Must Have:**
+- [ ] Mesh Serialization/Deserialization Round-Trip
+- [ ] Coordinate Conversion (Rhino ↔ Unity)
+- [ ] WebSocket Connection/Reconnection
+- [ ] Room Join/Leave
+
+**P1 - Should Have:**
+- [ ] Max Mesh Size Handling
+- [ ] Rate Limiting
+- [ ] Invalid Data Rejection
+- [ ] Multi-Client Sync
+
+**P2 - Nice to Have:**
+- [ ] Performance Benchmarks
+- [ ] Stress Tests (100 updates/sec)
+- [ ] Long-Running Stability (1h)
+
+### Integration Tests
+
+```
+[GH Component] → [Relay Server] → [Unity App]
+     ↓                ↓                ↓
+  Mock Mesh      Log Messages     Mock Renderer
+```
+
+### Manual Test Checklist (vor Release)
+
+- [ ] App startet ohne Crash
+- [ ] QR-Code wird in <3s erkannt
+- [ ] Mesh erscheint am korrekten Ort
+- [ ] Mesh-Update funktioniert live
+- [ ] App läuft 10min ohne Memory-Leak
+- [ ] Reconnect nach WiFi-Wechsel funktioniert
 
 ---
 
 ## 📋 Phasen & Tasks
 
-### Phase 0: Setup (1-2h)
+### Phase 0: Setup
 > Entwicklungsumgebung vorbereiten
 
-- [ ] **P0.1** Unity Hub installieren, Unity 2022.3 LTS
-- [ ] **P0.2** Android Build Support installieren
-- [ ] **P0.3** Android SDK/NDK konfigurieren
-- [ ] **P0.4** AR Foundation Package installieren
-- [ ] **P0.5** Neues Unity Projekt erstellen: `RhinoARViewer`
-- [ ] **P0.6** Git Repo initialisieren: `McMuff86/RhinoARViewer`
-- [ ] **P0.7** Node.js Projekt für Relay Server erstellen
+- [x] **P0.1** Git Repo initialisieren: `McMuff86/RhinoARViewer`
+- [ ] **P0.2** `.gitignore` für Unity + Node.js + C# erstellen
+- [ ] **P0.3** Unity Hub installieren, Unity 2022.3 LTS
+- [ ] **P0.4** Android Build Support installieren (IL2CPP + SDK + NDK)
+- [ ] **P0.5** Android SDK konfigurieren (Min API 26, Target API 34)
+- [ ] **P0.6** AR Foundation Package installieren (5.1.x)
+- [ ] **P0.7** ARCore XR Plugin installieren
+- [ ] **P0.8** Neues Unity Projekt erstellen: `unity/RhinoARViewer`
+- [ ] **P0.9** Node.js 20 LTS installieren
+- [ ] **P0.10** Node.js Projekt erstellen: `server/`
+- [ ] **P0.11** Basis-Ordnerstruktur anlegen (siehe Repo Struktur)
 
 **Deliverable:** Leeres Unity-Projekt das auf Android deployed werden kann
 
 ---
 
-### Phase 1: AR Basics (2-3h)
+### Phase 1: AR Basics
 > Kamera + AR Plane Detection
 
 - [ ] **P1.1** AR Session + AR Session Origin setup
@@ -112,7 +319,7 @@
 
 ---
 
-### Phase 2: QR Code Tracking (2-3h)
+### Phase 2: QR Code Tracking
 > Präzise Positionierung via QR-Code
 
 - [ ] **P2.1** QR Code Detection Package evaluieren
@@ -128,7 +335,7 @@
 
 ---
 
-### Phase 3: Relay Server (2-3h)
+### Phase 3: Relay Server
 > WebSocket Server für GH ↔ App Kommunikation
 
 - [ ] **P3.1** Node.js Projekt setup mit Socket.IO
@@ -150,7 +357,7 @@
 
 ---
 
-### Phase 4: Unity Socket.IO Client (2-3h)
+### Phase 4: Unity Socket.IO Client
 > App verbindet sich mit Server
 
 - [ ] **P4.1** Socket.IO Unity Package installieren
@@ -166,7 +373,7 @@
 
 ---
 
-### Phase 5: Mesh Rendering (3-4h)
+### Phase 5: Mesh Rendering
 > Empfangene Mesh-Daten als 3D-Objekt anzeigen
 
 - [ ] **P5.1** Mesh Data Model definieren
@@ -193,7 +400,7 @@ public class MeshData {
 
 ---
 
-### Phase 6: Grasshopper Component (4-5h)
+### Phase 6: Grasshopper Component
 > GH Component die Meshes zum Server streamt
 
 - [ ] **P6.1** VS Solution erstellen: `RhinoARSync`
@@ -221,7 +428,7 @@ var meshData = new {
 
 ---
 
-### Phase 7: Integration & Polish (2-3h)
+### Phase 7: Integration & Polish
 > Alles zusammen, UX verbessern
 
 - [ ] **P7.1** End-to-End Test: GH → Server → App → AR View
@@ -236,7 +443,7 @@ var meshData = new {
 
 ---
 
-### Phase 8: Documentation & Release (1-2h)
+### Phase 8: Documentation & Release
 
 - [ ] **P8.1** README.md mit Setup-Anleitung
 - [ ] **P8.2** GH Component Dokumentation
@@ -274,23 +481,23 @@ RhinoARViewer/
 
 ---
 
-## ⏱️ Geschätzter Aufwand
+## 📊 Phasen-Übersicht
 
-| Phase | Aufwand | Kumuliert |
-|-------|---------|-----------|
-| P0: Setup | 1-2h | 2h |
-| P1: AR Basics | 2-3h | 5h |
-| P2: QR Tracking | 2-3h | 8h |
-| P3: Relay Server | 2-3h | 11h |
-| P4: Unity Socket | 2-3h | 14h |
-| P5: Mesh Rendering | 3-4h | 18h |
-| P6: GH Component | 4-5h | 23h |
-| P7: Integration | 2-3h | 26h |
-| P8: Documentation | 1-2h | 28h |
+| Phase | Fokus | Abhängigkeiten |
+|-------|-------|----------------|
+| P0 | Setup & Tooling | - |
+| P1 | AR Basics | P0 |
+| P2 | QR Tracking | P1 |
+| P3 | Relay Server | P0 |
+| P4 | Unity Socket | P1, P3 |
+| P5 | Mesh Rendering | P4 |
+| P6 | GH Component | P3 |
+| P7 | Integration | P5, P6 |
+| P8 | Documentation | P7 |
 
-**Total: ~25-30 Stunden**
+**Kritischer Pfad:** P0 → P1 → P4 → P5 → P7 → P8
 
-Bei 1-2h pro Abend: **3-4 Wochen**
+**Parallel möglich:** P3 kann parallel zu P1-P2, P6 kann parallel zu P4-P5
 
 ---
 
@@ -338,13 +545,89 @@ Throttle updates auf max 10/sec.
 ## ✅ Success Criteria
 
 MVP ist erfolgreich wenn:
-1. [ ] Android App zeigt Kamera-Feed mit AR-Overlay
-2. [ ] QR-Code wird erkannt und als Origin verwendet
-3. [ ] Mesh aus Grasshopper wird in <2 Sekunden angezeigt
-4. [ ] Änderungen in GH updaten das AR-Modell live
-5. [ ] App läuft stabil für mindestens 10 Minuten
+
+| # | Kriterium | Messbar | Status |
+|---|-----------|---------|--------|
+| 1 | Android App zeigt Kamera-Feed mit AR-Overlay | App startet, Kamera aktiv | [ ] |
+| 2 | QR-Code wird erkannt und als Origin verwendet | QR erkannt in <3s bei gutem Licht | [ ] |
+| 3 | Mesh aus Grasshopper wird angezeigt | Latenz <500ms (gemessen) | [ ] |
+| 4 | Änderungen in GH updaten das AR-Modell live | 10 Updates/sec ohne Frame-Drop | [ ] |
+| 5 | App läuft stabil | 10min ohne Crash, Memory <500MB | [ ] |
+| 6 | Mesh-Position stimmt mit QR-Origin überein | Abweichung <5mm | [ ] |
+| 7 | Reconnect funktioniert | Auto-reconnect nach WiFi-Wechsel | [ ] |
+
+---
+
+## ⚠️ Bekannte Limitationen (MVP)
+
+| Limitation | Workaround | Post-MVP Fix |
+|------------|------------|--------------|
+| Nur Android | - | iOS Support (Phase 2) |
+| Max 65k Vertices/Mesh | Mesh in GH dezimieren | Mesh Chunking |
+| Keine Texturen | Vertex Colors verwenden | Texture Streaming |
+| Nur lokales Netzwerk praktikabel | ngrok für remote | Cloud Server |
+| Keine persistente Session | Room Code neu eingeben | JWT Auth |
+| Kein Offline-Modus | Immer Server-Verbindung nötig | Local Cache |
+| Single-User pro Device | - | Multi-User Sync |
+
+---
+
+## 🔮 Post-MVP Roadmap
+
+### Phase 2: iOS Support
+- [ ] ARKit Integration
+- [ ] Universal Build (Android + iOS)
+- [ ] TestFlight Distribution
+
+### Phase 3: Enhanced Interaction
+- [ ] Bidirektionale Kommunikation (Gesten → GH Parameter)
+- [ ] Touch-Manipulation (Scale, Rotate, Move)
+- [ ] Annotations/Markers platzieren
+
+### Phase 4: Enterprise Features
+- [ ] Cloud-Hosted Relay Server
+- [ ] User Authentication
+- [ ] Session Persistence
+- [ ] Analytics Dashboard
+
+### Phase 5: Extended Reality
+- [ ] HoloLens 2 Support
+- [ ] Meta Quest 3 Passthrough
+- [ ] Multi-User Collaboration
+
+---
+
+## 🔧 Troubleshooting Guide
+
+### App startet nicht / Crash beim Start
+- ARCore nicht installiert → Play Store → "Google Play Services for AR"
+- Device nicht ARCore-kompatibel → [Liste prüfen](https://developers.google.com/ar/devices)
+
+### QR-Code wird nicht erkannt
+- Zu wenig Licht → Mehr Beleuchtung
+- QR zu klein → Min. 10x10cm drucken
+- QR beschädigt/verzerrt → Neu drucken, flach halten
+
+### Mesh erscheint nicht
+- Server nicht erreichbar → Server-URL prüfen, Firewall checken
+- Room Code falsch → Code in GH und App vergleichen
+- Mesh zu groß → Vertices in GH prüfen (<65k)
+
+### Mesh an falscher Position
+- QR nicht im Bild → QR erneut scannen
+- Koordinaten-System → Rhino-Ursprung = QR-Position
+
+### Hohe Latenz / Ruckeln
+- WiFi-Problem → Näher zum Router
+- Mesh zu komplex → Dezimieren in GH
+- Viele Updates → Throttle in GH erhöhen
+
+### Verbindung bricht ab
+- Server-Timeout → Server-Logs prüfen
+- App im Hintergrund → Android killt WebSocket → App im Vordergrund halten
 
 ---
 
 *Erstellt: 2026-01-26*
-*Status: DRAFT*
+*Letzte Änderung: 2026-01-26*
+*Status: DRAFT - Ready for Review*
