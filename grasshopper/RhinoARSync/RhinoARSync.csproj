@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Grasshopper Plugin Settings -->
+    <AssemblyTitle>RhinoARSync</AssemblyTitle>
+    <Product>RhinoARSync</Product>
+    <Description>Stream Rhino/Grasshopper geometry to AR devices in real-time</Description>
+    <Company>McMuff86</Company>
+    <Copyright>Copyright © 2026</Copyright>
+    <Version>1.0.0</Version>
+
+    <!-- Output as .gha (Grasshopper Assembly) -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grasshopper" Version="8.*" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="SocketIOClient" Version="3.*" />
+  </ItemGroup>
+
+  <!-- Rename .dll to .gha after build -->
+  <Target Name="RenameToGha" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetDir)$(TargetName).dll" DestinationFiles="$(TargetDir)$(TargetName).gha" />
+  </Target>
+
+</Project>

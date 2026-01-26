@@ -290,16 +290,16 @@ Scale: Rhino mm → Unity m (÷ 1000)
 > Entwicklungsumgebung vorbereiten
 
 - [x] **P0.1** Git Repo initialisieren: `McMuff86/RhinoARViewer`
-- [ ] **P0.2** `.gitignore` für Unity + Node.js + C# erstellen
-- [ ] **P0.3** Unity Hub installieren, Unity 2022.3 LTS
-- [ ] **P0.4** Android Build Support installieren (IL2CPP + SDK + NDK)
+- [x] **P0.2** `.gitignore` für Unity + Node.js + C# erstellen
+- [x] **P0.3** Unity Hub installieren, Unity 2022.3 LTS (2022.3.62f3)
+- [x] **P0.4** Android Build Support installieren (IL2CPP + SDK + NDK)
 - [ ] **P0.5** Android SDK konfigurieren (Min API 26, Target API 34)
 - [ ] **P0.6** AR Foundation Package installieren (5.1.x)
 - [ ] **P0.7** ARCore XR Plugin installieren
 - [ ] **P0.8** Neues Unity Projekt erstellen: `unity/RhinoARViewer`
-- [ ] **P0.9** Node.js 20 LTS installieren
-- [ ] **P0.10** Node.js Projekt erstellen: `server/`
-- [ ] **P0.11** Basis-Ordnerstruktur anlegen (siehe Repo Struktur)
+- [x] **P0.9** Node.js installiert (v22.18.0)
+- [x] **P0.10** Node.js Relay Server erstellt: `server/`
+- [x] **P0.11** Basis-Ordnerstruktur angelegt
 
 **Deliverable:** Leeres Unity-Projekt das auf Android deployed werden kann
 
