@@ -8,6 +8,8 @@ export interface ParsedMesh {
   normals: Float32Array | null;
   /** 0xRRGGBB display color, or null when the object has no usable color. */
   color: number | null;
+  /** 0.05–1, from the render material's transparency (1 = opaque). */
+  opacity: number;
   name: string;
 }
 
@@ -64,7 +66,7 @@ export function parse3dm(rhino: RhinoModule, data: Uint8Array): Parsed3dm {
       // Mirror Rhino: hidden objects and objects on hidden layers don't render.
       if (isHidden(doc, attributes)) continue;
       const name: string = attributes?.name || `Objekt ${i + 1}`;
-      const color = extractColor(r, doc, attributes);
+      const style = extractStyle(r, doc, attributes);
       const objectType = enumValue(geometry.objectType);
 
       const renderMeshes: any[] = [];
@@ -101,7 +103,7 @@ export function parse3dm(rhino: RhinoModule, data: Uint8Array): Parsed3dm {
       }
 
       for (const rhinoMesh of renderMeshes) {
-        const parsed = meshToParsed(rhinoMesh, color, name);
+        const parsed = meshToParsed(rhinoMesh, style, name);
         if (parsed) meshes.push(parsed);
       }
     }
@@ -133,7 +135,12 @@ function enumValue(e: unknown): number {
   return typeof v === 'number' ? v : -1;
 }
 
-function meshToParsed(rhinoMesh: any, color: number | null, name: string): ParsedMesh | null {
+interface Style {
+  color: number | null;
+  opacity: number;
+}
+
+function meshToParsed(rhinoMesh: any, style: Style, name: string): ParsedMesh | null {
   try {
     rhinoMesh.faces()?.convertQuadsToTriangles?.();
   } catch {
@@ -155,9 +162,46 @@ function meshToParsed(rhinoMesh: any, color: number | null, name: string): Parse
     positions: new Float32Array(position),
     indices,
     normals: normalArray && normalArray.length === position.length ? new Float32Array(normalArray) : null,
-    color,
+    color: style.color,
+    opacity: style.opacity,
     name,
   };
+}
+
+/**
+ * Resolve how an object should look, in Rhino's "rendered mode" priority:
+ * an assigned render material (object- or layer-level) wins and brings
+ * diffuse color + transparency; otherwise fall back to the display color
+ * (object or layer) at full opacity.
+ */
+function extractStyle(r: any, doc: any, attributes: any): Style {
+  try {
+    const material = resolveRenderMaterial(r, doc, attributes);
+    if (material) {
+      const transparency = typeof material.transparency === 'number' ? material.transparency : 0;
+      return {
+        color: rgbToHex(material.diffuseColor),
+        opacity: Math.min(Math.max(1 - transparency, 0.05), 1),
+      };
+    }
+  } catch {
+    // Materials are cosmetic — fall through to display colors.
+  }
+  return { color: extractColor(r, doc, attributes), opacity: 1 };
+}
+
+function resolveRenderMaterial(r: any, doc: any, attributes: any): any | null {
+  const source = enumValue(attributes.materialSource);
+  if (source === enumValue(r.ObjectMaterialSource.MaterialFromObject)) {
+    const index = attributes.materialIndex;
+    if (typeof index === 'number' && index >= 0) return doc.materials().get(index);
+  }
+  if (source === enumValue(r.ObjectMaterialSource.MaterialFromLayer)) {
+    const layer = doc.layers().get(attributes.layerIndex);
+    const index = layer?.renderMaterialIndex;
+    if (typeof index === 'number' && index >= 0) return doc.materials().get(index);
+  }
+  return null;
 }
 
 function extractColor(r: any, doc: any, attributes: any): number | null {

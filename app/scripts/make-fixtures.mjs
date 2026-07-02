@@ -124,9 +124,28 @@ function save(doc, dir, name) {
   save(doc, fixturesDir, 'visibility.3dm');
 }
 
+// --- Fixture 6: render material with transparency and diffuse color ---
+{
+  const doc = newDocMillimeters();
+
+  const material = new rhino.Material();
+  material.name = 'glass-blue';
+  material.diffuseColor = { r: 0, g: 0, b: 255, a: 255 };
+  material.transparency = 0.4;
+  const materialIndex = doc.materials().add(material);
+
+  const attributes = new rhino.ObjectAttributes();
+  attributes.name = 'transparent-box';
+  attributes.materialSource = rhino.ObjectMaterialSource.MaterialFromObject;
+  attributes.materialIndex = materialIndex;
+  doc.objects().add(makeBoxMesh(100, 100, 100), attributes);
+
+  save(doc, fixturesDir, 'transparent-material.3dm');
+}
+
 // --- Self-verification: read fixtures back and print a summary ---
 import { readFileSync } from 'node:fs';
-for (const name of ['mesh-box.3dm', 'empty.3dm', 'curve-only.3dm', 'extrusion-no-rendermesh.3dm', 'visibility.3dm']) {
+for (const name of ['mesh-box.3dm', 'empty.3dm', 'curve-only.3dm', 'extrusion-no-rendermesh.3dm', 'visibility.3dm', 'transparent-material.3dm']) {
   const doc = rhino.File3dm.fromByteArray(new Uint8Array(readFileSync(join(fixturesDir, name))));
   const unit = doc.settings().modelUnitSystem;
   console.log(

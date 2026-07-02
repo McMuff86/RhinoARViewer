@@ -45,9 +45,13 @@ export async function startArSession(options: ArSessionOptions): Promise<ArSessi
 
   const { renderer, reticle } = options;
 
-  const sessionInit: XRSessionInit = { requiredFeatures: ['hit-test'], optionalFeatures: [] };
+  const sessionInit: XRSessionInit = {
+    requiredFeatures: ['hit-test'],
+    // Optional: session still starts on devices without these features.
+    optionalFeatures: ['light-estimation'],
+  };
   if (options.overlayRoot) {
-    sessionInit.optionalFeatures = ['dom-overlay'];
+    sessionInit.optionalFeatures!.push('dom-overlay');
     (sessionInit as XRSessionInit & { domOverlay: { root: Element } }).domOverlay = {
       root: options.overlayRoot,
     };

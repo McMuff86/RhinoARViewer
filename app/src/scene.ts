@@ -15,6 +15,7 @@ import {
 } from 'three';
 import type { Object3D } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js';
 import type { Placement } from './ar/placement';
 import { composeModelTransform, DEFAULT_ADJUST, type ModelAdjust } from './ar/modelTransform';
 
@@ -49,13 +50,32 @@ export class Viewer {
     this.camera = new PerspectiveCamera(60, 1, 0.01, 100);
     this.camera.position.set(1.4, 1.1, 1.4);
 
-    this.scene.add(new HemisphereLight(0xffffff, 0x60666e, 1.4));
+    const defaultLights = new Group();
+    defaultLights.name = 'default-lights';
+    defaultLights.add(new HemisphereLight(0xffffff, 0x60666e, 1.4));
     const sun = new DirectionalLight(0xffffff, 1.6);
     sun.position.set(1, 2, 1.5);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     sun.shadow.bias = -0.0005;
-    this.scene.add(sun);
+    defaultLights.add(sun);
+    this.scene.add(defaultLights);
+
+    // WebXR light estimation ('light-estimation' optional feature): when
+    // the device starts estimating real-world lighting, swap our default
+    // lights for the estimated ones so the model matches the room.
+    const xrLight = new XREstimatedLight(this.renderer);
+    xrLight.directionalLight.castShadow = true;
+    xrLight.directionalLight.shadow.mapSize.set(1024, 1024);
+    xrLight.directionalLight.shadow.bias = -0.0005;
+    xrLight.addEventListener('estimationstart', () => {
+      this.scene.add(xrLight);
+      defaultLights.visible = false;
+    });
+    xrLight.addEventListener('estimationend', () => {
+      this.scene.remove(xrLight);
+      defaultLights.visible = true;
+    });
 
     this.grid = new GridHelper(4, 8, 0x4c8bf5, 0x3f454d);
     this.scene.add(this.grid);

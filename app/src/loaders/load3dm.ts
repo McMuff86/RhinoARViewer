@@ -77,6 +77,8 @@ export async function load3dm(data: ArrayBuffer): Promise<LoadedModel> {
       metalness: 0.05,
       roughness: 0.8,
       side: DoubleSide,
+      opacity: pm.opacity,
+      transparent: pm.opacity < 1,
     });
 
     const mesh = new Mesh(geometry, material);

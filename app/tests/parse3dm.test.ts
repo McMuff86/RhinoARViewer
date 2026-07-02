@@ -61,6 +61,20 @@ describe('parse3dm', () => {
     expect(result.warnings[0]).toContain('Render-Meshes');
   });
 
+  it('reads diffuse color and transparency from an assigned render material', () => {
+    const result = parse3dm(rhino, fixture('transparent-material.3dm'));
+    expect(result.meshes).toHaveLength(1);
+
+    const mesh = result.meshes[0]!;
+    expect(mesh.color).toBe(0x0000ff);
+    expect(mesh.opacity).toBeCloseTo(0.6); // transparency 0.4 → opacity 0.6
+  });
+
+  it('defaults to full opacity without a render material', () => {
+    const result = parse3dm(rhino, fixture('mesh-box.3dm'));
+    expect(result.meshes[0]!.opacity).toBe(1);
+  });
+
   it('skips hidden objects and objects on hidden layers, like Rhino does', () => {
     const result = parse3dm(rhino, fixture('visibility.3dm'));
     expect(result.meshes).toHaveLength(1);
