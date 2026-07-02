@@ -26,7 +26,7 @@ npm run dev
 
 Der Dev-Server läuft mit HTTPS (selbstsigniert) auf allen Interfaces. Dann am Handy:
 
-1. `https://<IP-des-PCs>:5173` in Chrome öffnen (IP z. B. via `ipconfig`)
+1. `https://<IP-des-PCs>:5180` in Chrome öffnen (IP z. B. via `ipconfig`)
 2. Zertifikatswarnung einmalig bestätigen („Erweitert" → „Trotzdem fortfahren")
 3. Modell wählen (Testwürfel / Beispiel-Box / eigene Datei) → **AR starten**
 4. Handy langsam bewegen, bis der weiße Ring auf dem Boden erscheint → tippen
@@ -34,8 +34,8 @@ Der Dev-Server läuft mit HTTPS (selbstsigniert) auf allen Interfaces. Dann am H
 Alternative ohne Zertifikatswarnung (USB-Kabel + [Platform Tools](https://developer.android.com/tools/releases/platform-tools)):
 
 ```bash
-adb reverse tcp:5173 tcp:5173
-# am Handy: https://localhost:5173
+adb reverse tcp:5180 tcp:5180
+# am Handy: https://localhost:5180
 ```
 
 ## Eigene Modelle

@@ -12,7 +12,7 @@ Web-App, die Rhino-Geometrie (.3dm, glTF; später STEP und Live-Grasshopper) per
 
 ## Befehle (in `app/`)
 
-- `npm run dev` — Dev-Server mit HTTPS (selbstsigniert) auf allen Interfaces, Port 5173
+- `npm run dev` — Dev-Server mit HTTPS (selbstsigniert) auf allen Interfaces, Port 5180 (5173 ist auf dieser Maschine anderweitig belegt; `strictPort` ist gesetzt)
 - `npm test` — Vitest (Unit + IWER-WebXR-Emulation)
 - `npm run test:e2e` — Playwright-Smoke-Tests (starten den Dev-Server selbst)
 - `npm run build` — `tsc --noEmit` + Vite-Build
@@ -29,7 +29,7 @@ Web-App, die Rhino-Geometrie (.3dm, glTF; später STEP und Live-Grasshopper) per
 
 - **rhino3dm kann BREPs nicht meshen.** Client-seitig gibt es nur die im .3dm gecachten Render-Meshes (`BrepFace.getMesh(MeshType.Render)`). Dateien müssen in Rhino nach schattierter Anzeige gespeichert sein, sonst: klare Fehlermeldung (siehe `app/src/loaders/parse3dm.ts`).
 - **Koordinaten:** Rhino ist Z-up mit Modelleinheiten, three.js Y-up in Metern. Konvertierung ausschließlich über `app/src/geometry/units.ts` (echte Rotation −90° um X, kein Achsentausch — Winding bleibt erhalten). Keine zweite Konvertierungsstelle einführen.
-- **WebXR braucht Secure Context:** Handy-Test via `https://<PC-IP>:5173` (Zertifikatswarnung bestätigen) oder `adb reverse tcp:5173 tcp:5173` + `https://localhost:5173`. iOS Safari hat kein WebXR (ADR-003).
+- **WebXR braucht Secure Context:** Handy-Test via `https://<PC-IP>:5180` (Zertifikatswarnung bestätigen) oder `adb reverse tcp:5180 tcp:5180` + `https://localhost:5180`. iOS Safari hat kein WebXR (ADR-003).
 - **rhino3dm-Bundling:** Der emscripten-Loader hat Node-only-Zweige; `ws` ist in `vite.config.ts` auf einen Stub gealiased und die WASM-URL wird via `locateFile` gesetzt. Bei rhino3dm-Updates den Playwright-Test laufen lassen (deckt genau diesen Pfad ab).
 
 ## Verifikation vor Commits

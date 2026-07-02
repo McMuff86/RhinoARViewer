@@ -5,7 +5,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 
 // HTTPS is required: WebXR only runs in a secure context. On the phone,
 // either accept the self-signed certificate warning once, or use
-// `adb reverse tcp:5173 tcp:5173` and open https://localhost:5173.
+// `adb reverse tcp:5180 tcp:5180` and open https://localhost:5180.
 export default defineConfig({
   plugins: [basicSsl()],
   resolve: {
@@ -17,7 +17,10 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 5173,
+    // 5173 is taken by another project on this machine; strictPort keeps
+    // the phone URL and the Playwright baseURL reliable.
+    port: 5180,
+    strictPort: true,
   },
   test: {
     environment: 'node',
