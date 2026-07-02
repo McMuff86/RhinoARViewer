@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a1d21" />
+  <title>Rhino AR Viewer</title>
+  <style>
+    :root {
+      --bg: #1a1d21;
+      --panel: #24282e;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #4c8bf5;
+      --danger: #f28b82;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    #app { display: flex; flex-direction: column; height: 100%; }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: var(--panel);
+    }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    #status { font-size: 0.85rem; color: var(--muted); flex: 1; text-align: right; }
+    #viewport { flex: 1; position: relative; min-height: 0; }
+    #viewport canvas { display: block; width: 100%; height: 100%; }
+    #controls {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 14px; background: var(--panel);
+    }
+    select, button, .file-label {
+      font: inherit; color: var(--text); background: #31363d;
+      border: 1px solid #3f454d; border-radius: 8px;
+      padding: 8px 14px; cursor: pointer;
+    }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    #btn-ar { background: var(--accent); border-color: var(--accent); font-weight: 600; }
+    input[type="file"] { display: none; }
+
+    /* DOM overlay shown inside the AR session */
+    #ar-overlay { display: none; }
+    body.in-ar #ar-overlay {
+      display: flex; position: fixed; inset: 0; pointer-events: none;
+      flex-direction: column; justify-content: space-between;
+      padding: max(12px, env(safe-area-inset-top)) 12px max(20px, env(safe-area-inset-bottom));
+    }
+    #ar-overlay .hint {
+      align-self: center; background: rgba(0,0,0,0.55); color: #fff;
+      padding: 8px 14px; border-radius: 999px; font-size: 0.9rem;
+    }
+    #ar-overlay .bottom { display: flex; justify-content: center; gap: 10px; }
+    #ar-overlay button { pointer-events: auto; background: rgba(0,0,0,0.6); border-color: rgba(255,255,255,0.25); }
+    body.in-ar #app { visibility: hidden; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Rhino AR Viewer</h1>
+      <div id="status">Initialisiere …</div>
+    </header>
+    <div id="viewport"></div>
+    <div id="controls">
+      <select id="model-select" aria-label="Modell wählen">
+        <option value="cube">Testwürfel (0,4 m)</option>
+        <option value="sample-3dm">Beispiel-Box (.3dm)</option>
+      </select>
+      <label class="file-label" for="file-input">Datei öffnen (.3dm / .glb)</label>
+      <input id="file-input" type="file" accept=".3dm,.glb,.gltf" />
+      <button id="btn-ar" disabled>AR starten</button>
+    </div>
+  </div>
+
+  <div id="ar-overlay">
+    <div class="hint" id="ar-hint">Bewege das Handy langsam, bis der Ring erscheint – dann tippen.</div>
+    <div class="bottom">
+      <button id="btn-exit-ar">AR beenden</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
