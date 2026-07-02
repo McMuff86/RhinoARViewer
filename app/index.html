@@ -42,6 +42,24 @@
     button:disabled { opacity: 0.45; cursor: not-allowed; }
     #btn-ar { background: var(--accent); border-color: var(--accent); font-weight: 600; }
     input[type="file"] { display: none; }
+    .inline-control {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--muted); font-size: 0.85rem;
+    }
+    .inline-control input[type="range"] { width: 110px; accent-color: var(--accent); }
+    input[type="color"] {
+      width: 42px; height: 38px; padding: 2px; cursor: pointer;
+      background: #31363d; border: 1px solid #3f454d; border-radius: 8px;
+    }
+
+    /* Busy spinner next to the status text */
+    #spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid #3f454d; border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+    #spinner[hidden] { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* DOM overlay shown inside the AR session */
     #ar-overlay { display: none; }
@@ -67,6 +85,14 @@
     #ar-adjust label > span:first-child { width: 4.5em; }
     #ar-adjust label > span:last-child { width: 3.5em; text-align: right; font-variant-numeric: tabular-nums; }
     #ar-adjust input[type="range"] { flex: 1; accent-color: var(--accent); }
+    .swatches { display: flex; gap: 10px; justify-content: center; padding-top: 4px; }
+    .swatches button {
+      width: 28px; height: 28px; border-radius: 50%; padding: 0;
+      border: 2px solid rgba(255,255,255,0.65); cursor: pointer;
+    }
+    .swatches button.original {
+      background: #24282e; color: #fff; font-size: 14px; line-height: 1;
+    }
     body.in-ar #app { visibility: hidden; }
 
     /* Desktop panel: QR code with the LAN URL for the phone */
@@ -86,6 +112,7 @@
     <header>
       <h1>Rhino AR Viewer</h1>
       <div id="status">Initialisiere …</div>
+      <span id="spinner" hidden></span>
     </header>
     <div id="viewport">
       <div id="qr-panel" hidden>
@@ -101,6 +128,12 @@
       </select>
       <label class="file-label" for="file-input">Datei öffnen (.3dm / .glb)</label>
       <input id="file-input" type="file" accept=".3dm,.glb,.gltf" />
+      <label class="inline-control">
+        <span>Deckkraft</span>
+        <input id="opacity-slider" type="range" min="10" max="100" step="5" value="100" />
+      </label>
+      <input id="color-picker" type="color" value="#4c8bf5" title="Materialfarbe wählen" />
+      <button id="btn-color-reset" title="Originalfarben wiederherstellen">Original</button>
       <button id="btn-ar" disabled>AR starten</button>
     </div>
   </div>
@@ -119,6 +152,19 @@
           <input id="rotate-slider" type="range" min="0" max="360" step="1" value="0" />
           <span id="rotate-value">0°</span>
         </label>
+        <label>
+          <span>Deckkraft</span>
+          <input id="ar-opacity-slider" type="range" min="10" max="100" step="5" value="100" />
+          <span id="ar-opacity-value">100 %</span>
+        </label>
+        <div class="swatches" id="ar-swatches">
+          <button type="button" class="original" data-color="" title="Originalfarben">⟲</button>
+          <button type="button" data-color="#e8eaed" style="background:#e8eaed" title="Weiss"></button>
+          <button type="button" data-color="#4c8bf5" style="background:#4c8bf5" title="Blau"></button>
+          <button type="button" data-color="#34a853" style="background:#34a853" title="Grün"></button>
+          <button type="button" data-color="#fbbc04" style="background:#fbbc04" title="Gelb"></button>
+          <button type="button" data-color="#ea4335" style="background:#ea4335" title="Rot"></button>
+        </div>
       </div>
       <button id="btn-exit-ar">AR beenden</button>
     </div>

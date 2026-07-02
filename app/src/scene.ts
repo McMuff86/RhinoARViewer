@@ -4,8 +4,12 @@ import {
   GridHelper,
   Group,
   HemisphereLight,
+  Mesh,
+  PCFSoftShadowMap,
   PerspectiveCamera,
+  PlaneGeometry,
   Scene,
+  ShadowMaterial,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -27,6 +31,8 @@ export class Viewer {
   private readonly controls: OrbitControls;
   private readonly grid: GridHelper;
   private readonly modelRoot: Group;
+  private readonly shadowPlane: Mesh;
+  private currentModel: Object3D | null = null;
   private frameHook: ((frame: XRFrame | undefined) => void) | null = null;
   private lastPlacement: Placement | null = null;
   private adjust: ModelAdjust = { ...DEFAULT_ADJUST };
@@ -35,6 +41,8 @@ export class Viewer {
     this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.xr.enabled = true;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
     this.scene = new Scene();
@@ -44,6 +52,9 @@ export class Viewer {
     this.scene.add(new HemisphereLight(0xffffff, 0x60666e, 1.4));
     const sun = new DirectionalLight(0xffffff, 1.6);
     sun.position.set(1, 2, 1.5);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.bias = -0.0005;
     this.scene.add(sun);
 
     this.grid = new GridHelper(4, 8, 0x4c8bf5, 0x3f454d);
@@ -52,6 +63,17 @@ export class Viewer {
     this.modelRoot = new Group();
     this.modelRoot.name = 'model-root';
     this.scene.add(this.modelRoot);
+
+    // Shadow catcher: invisible plane that only shows the model's soft
+    // shadow — anchors the model visually on real (and virtual) ground.
+    this.shadowPlane = new Mesh(
+      new PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+      new ShadowMaterial({ opacity: 0.35 })
+    );
+    this.shadowPlane.name = 'shadow-catcher';
+    this.shadowPlane.receiveShadow = true;
+    this.shadowPlane.position.y = 0.002; // avoid z-fighting with real/virtual floor
+    this.modelRoot.add(this.shadowPlane);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(0, 0.2, 0);
@@ -75,18 +97,39 @@ export class Viewer {
 
   /** Replace the currently shown model. */
   setModel(object: Object3D): void {
-    this.modelRoot.clear();
+    if (this.currentModel) this.modelRoot.remove(this.currentModel);
+    this.currentModel = object;
     this.modelRoot.add(object);
+
+    object.traverse((child) => {
+      if ((child as Mesh).isMesh) child.castShadow = true;
+    });
+
+    // Size the shadow catcher to the model footprint.
+    const box = new Box3().setFromObject(object);
+    if (!box.isEmpty()) {
+      const size = box.getSize(new Vector3());
+      const footprint = Math.max(size.x, size.z, 0.2) * 1.6;
+      this.shadowPlane.scale.set(footprint, 1, footprint);
+      this.shadowPlane.position.x = (box.min.x + box.max.x) / 2;
+      this.shadowPlane.position.z = (box.min.z + box.max.z) / 2;
+    }
+
     if (!this.renderer.xr.isPresenting) this.frameModel();
   }
 
+  getModel(): Object3D | null {
+    return this.currentModel;
+  }
+
   hasModel(): boolean {
-    return this.modelRoot.children.length > 0;
+    return this.currentModel !== null;
   }
 
   /** Fit the desktop camera to the current model. */
   private frameModel(): void {
-    const box = new Box3().setFromObject(this.modelRoot);
+    if (!this.currentModel) return;
+    const box = new Box3().setFromObject(this.currentModel);
     if (box.isEmpty()) return;
     const size = box.getSize(new Vector3()).length();
     const center = box.getCenter(new Vector3());

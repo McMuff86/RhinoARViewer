@@ -1,6 +1,7 @@
 import { BoxGeometry, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial } from 'three';
 import QRCode from 'qrcode';
 import { Viewer } from './scene';
+import { applyAppearance, DEFAULT_APPEARANCE, type Appearance } from './appearance';
 import { createReticle, isArSupported, startArSession, type ArSessionHandle } from './ar/session';
 import { load3dm } from './loaders/load3dm';
 import { loadGlb } from './loaders/loadGlb';
@@ -22,6 +23,13 @@ const rotateValue = document.getElementById('rotate-value') as HTMLElement;
 const qrPanel = document.getElementById('qr-panel') as HTMLElement;
 const qrCanvas = document.getElementById('qr-canvas') as HTMLCanvasElement;
 const qrUrl = document.getElementById('qr-url') as HTMLElement;
+const spinner = document.getElementById('spinner') as HTMLElement;
+const opacitySlider = document.getElementById('opacity-slider') as HTMLInputElement;
+const colorPicker = document.getElementById('color-picker') as HTMLInputElement;
+const colorResetButton = document.getElementById('btn-color-reset') as HTMLButtonElement;
+const arOpacitySlider = document.getElementById('ar-opacity-slider') as HTMLInputElement;
+const arOpacityValue = document.getElementById('ar-opacity-value') as HTMLElement;
+const arSwatches = document.getElementById('ar-swatches') as HTMLElement;
 
 const viewer = new Viewer(viewport);
 const reticle = createReticle();
@@ -38,7 +46,42 @@ function setStatus(text: string, isError = false): void {
 function setBusy(busy: boolean): void {
   modelSelect.disabled = busy;
   fileInput.disabled = busy;
+  spinner.hidden = !busy;
 }
+
+// --- Appearance overrides (opacity + material color) ---
+
+let appearance: Appearance = { ...DEFAULT_APPEARANCE };
+
+function setAppearance(partial: Partial<Appearance>): void {
+  appearance = { ...appearance, ...partial };
+  const model = viewer.getModel();
+  if (model) applyAppearance(model, appearance);
+  syncAppearanceControls();
+}
+
+function syncAppearanceControls(): void {
+  const percent = String(Math.round(appearance.opacity * 100));
+  opacitySlider.value = percent;
+  arOpacitySlider.value = percent;
+  arOpacityValue.textContent = `${percent} %`;
+  if (appearance.color) colorPicker.value = appearance.color;
+}
+
+function resetAppearance(): void {
+  appearance = { ...DEFAULT_APPEARANCE };
+  syncAppearanceControls();
+}
+
+opacitySlider.addEventListener('input', () => setAppearance({ opacity: Number(opacitySlider.value) / 100 }));
+arOpacitySlider.addEventListener('input', () => setAppearance({ opacity: Number(arOpacitySlider.value) / 100 }));
+colorPicker.addEventListener('input', () => setAppearance({ color: colorPicker.value }));
+colorResetButton.addEventListener('click', () => setAppearance({ color: null }));
+arSwatches.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest('button[data-color]') as HTMLElement | null;
+  if (!button) return;
+  setAppearance({ color: button.dataset.color || null });
+});
 
 function applyAdjustFromSliders(): void {
   const scale = Number(scaleSlider.value) / 100;
@@ -78,6 +121,7 @@ function makeTestCube(): LoadedModel {
 
 function showModel(model: LoadedModel, label: string): void {
   viewer.setModel(model.object);
+  resetAppearance(); // new model starts with its original materials
   if (model.warnings.length > 0) {
     setStatus(`${label} geladen — Hinweis: ${model.warnings.join(' ')}`, false);
   } else {

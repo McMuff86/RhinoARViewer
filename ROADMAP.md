@@ -26,14 +26,14 @@ Ziel: Rhino-Geometrie (.3dm, glTF, später STEP und Live-Grasshopper) per Smartp
 - [x] .3dm-Parsing im Web Worker (kein UI-Freeze bei großen Dateien)
 - [x] Layer-/Objekt-Sichtbarkeit aus .3dm respektiert (versteckte Objekte/Layer werden übersprungen)
 
-## M3 — PoC-Polish
+## M3 — PoC-Polish (fast fertig)
 
 - [x] QR-Code auf der Desktop-Seite mit der LAN-URL (Handy scannt statt tippt)
-- [x] Basis-Lade-Zustand (Controls gesperrt während Parsing) — Feinschliff offen:
-- [ ] Lade-Indikator (Spinner) + Fehler-UI verfeinern
-- [ ] Materialien aus .3dm feiner übernehmen (Transparenz, Textur-Basisfarben)
+- [x] Lade-Zustand: Spinner + Controls gesperrt während Parsing
+- [x] Deckkraft-Slider + Material-Farb-Override (Desktop: Color-Picker; AR-Overlay: Slider + Farb-Swatches; „Original" stellt Ausgangsmaterialien wieder her)
+- [x] Schattenfänger-Ebene (weicher Kontaktschatten unter dem Modell, skaliert mit dem Footprint)
+- [ ] Materialien aus .3dm feiner übernehmen (Material-Transparenz aus der Datei, Textur-Basisfarben)
 - [ ] Beleuchtung: WebXR Light Estimation (optionales Feature)
-- [ ] Schattenfänger-Ebene (weicher Kontaktschatten) für bessere Verankerung
 
 ## M4 — STEP-Import
 

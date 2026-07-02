@@ -29,6 +29,18 @@ test('loads the bundled .3dm sample through rhino3dm WASM (worker)', async ({ pa
   });
 });
 
+test('appearance controls work and stay in sync (desktop ↔ AR overlay)', async ({ page }) => {
+  await page.goto('/');
+
+  await page.locator('#opacity-slider').fill('50');
+  await expect(page.locator('#ar-opacity-slider')).toHaveValue('50');
+  await expect(page.locator('#ar-opacity-value')).toHaveText('50 %');
+
+  await page.locator('#color-picker').fill('#ff0000');
+  await page.locator('#btn-color-reset').click();
+  await expect(page.locator('#status')).not.toContainText('Fehler');
+});
+
 test('shows a readable error for unsupported files', async ({ page }) => {
   await page.goto('/');
 
