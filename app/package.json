@@ -13,6 +13,7 @@
     "fixtures": "node scripts/make-fixtures.mjs"
   },
   "dependencies": {
+    "occt-import-js": "^0.0.23",
     "qrcode": "^1.5.4",
     "rhino3dm": "^8.17.0",
     "three": "^0.185.1"

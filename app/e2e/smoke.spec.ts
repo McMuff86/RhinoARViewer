@@ -41,6 +41,15 @@ test('appearance controls work and stay in sync (desktop ↔ AR overlay)', async
   await expect(page.locator('#status')).not.toContainText('Fehler');
 });
 
+test('loads a STEP file through the OCCT worker', async ({ page }) => {
+  await page.goto('/');
+
+  await page.locator('#file-input').setInputFiles('tests/fixtures/cube.stp');
+
+  // Covers worker spawn → 7 MB OCCT WASM fetch → tessellation → three.js.
+  await expect(page.locator('#status')).toContainText('cube.stp geladen', { timeout: 45_000 });
+});
+
 test('shows a readable error for unsupported files', async ({ page }) => {
   await page.goto('/');
 

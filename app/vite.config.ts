@@ -30,6 +30,12 @@ export default defineConfig({
   define: {
     __LAN_URL__: JSON.stringify(detectLanUrl()),
   },
+  optimizeDeps: {
+    // Worker-only deps are discovered lazily at runtime; without
+    // pre-bundling, Vite's mid-session re-optimization reloads the page
+    // and aborts an in-flight model load.
+    include: ['rhino3dm', 'occt-import-js'],
+  },
   resolve: {
     alias: {
       // rhino3dm's emscripten loader has Node-only branches; stub the

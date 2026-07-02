@@ -35,9 +35,9 @@ Ziel: Rhino-Geometrie (.3dm, glTF, später STEP und Live-Grasshopper) per Smartp
 - [x] Render-Materialien aus .3dm: Diffuse-Farbe + Transparenz (Objekt- und Layer-Material)
 - [x] WebXR Light Estimation (optionales Feature; Standard-Lichter werden bei aktiver Schätzung ersetzt) — *Sichtprüfung auf Gerät offen*
 
-## M4 — STEP-Import
+## M4 — STEP-Import ✅
 
-- [ ] `occt-import-js` im Web Worker; STEP → Mesh client-seitig (ADR-002)
+- [x] `occt-import-js` im Web Worker; STEP → Mesh client-seitig (ADR-002). OCCT tesselliert die BREPs selbst (keine Render-Mesh-Anforderung wie bei .3dm); Farben aus der Datei werden übernommen. Annahme: STEP-Konvention Z-up/Millimeter. Das ~7-MB-OCCT-WASM wird erst beim ersten STEP-Load geladen.
 
 ## M5 — Grasshopper Live (ADR-006)
 

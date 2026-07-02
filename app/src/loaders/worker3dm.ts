@@ -3,19 +3,11 @@
 import rhino3dm from 'rhino3dm';
 import wasmUrl from 'rhino3dm/rhino3dm.wasm?url';
 import { parse3dm, type Parsed3dm, type RhinoModule } from './parse3dm';
-
-export interface Worker3dmRequest {
-  id: number;
-  data: ArrayBuffer;
-}
-
-export type Worker3dmResponse =
-  | { id: number; ok: true; parsed: Parsed3dm }
-  | { id: number; ok: false; message: string };
+import type { WorkerRequest, WorkerResponse } from './workerChannel';
 
 const scope = self as unknown as {
-  onmessage: ((event: MessageEvent<Worker3dmRequest>) => void) | null;
-  postMessage(message: Worker3dmResponse, options?: { transfer: Transferable[] }): void;
+  onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null;
+  postMessage(message: WorkerResponse<Parsed3dm>, options?: { transfer: Transferable[] }): void;
 };
 
 let rhinoPromise: Promise<RhinoModule> | null = null;

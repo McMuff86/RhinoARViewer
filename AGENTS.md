@@ -31,7 +31,8 @@ Web-App, die Rhino-Geometrie (.3dm, glTF; später STEP und Live-Grasshopper) per
 - **Koordinaten:** Rhino ist Z-up mit Modelleinheiten, three.js Y-up in Metern. Konvertierung ausschließlich über `app/src/geometry/units.ts` (echte Rotation −90° um X, kein Achsentausch — Winding bleibt erhalten). Keine zweite Konvertierungsstelle einführen.
 - **WebXR braucht Secure Context:** Handy-Test via `https://<PC-IP>:5180` (Zertifikatswarnung bestätigen) oder `adb reverse tcp:5180 tcp:5180` + `https://localhost:5180`. iOS Safari hat kein WebXR (ADR-003).
 - **rhino3dm-Bundling:** Der emscripten-Loader hat Node-only-Zweige; `ws` ist in `vite.config.ts` auf einen Stub gealiased und die WASM-URL wird via `locateFile` gesetzt. Bei rhino3dm-Updates den Playwright-Test laufen lassen (deckt genau diesen Pfad ab).
-- **.3dm-Parsing läuft im Web Worker** (`app/src/loaders/worker3dm.ts`, angebunden über `load3dm.ts`); `parse3dm.ts` bleibt pure und wird direkt in Node getestet.
+- **.3dm- und STEP-Parsing laufen in Web Workern** (`worker3dm.ts`/`workerStep.ts`, generischer Kanal in `workerChannel.ts`); `parse3dm.ts`/`parseStep.ts` bleiben pure und werden direkt in Node getestet. STEP: occt-import-js tesselliert selbst; Annahme Z-up/mm.
+- **Worker-Dependencies müssen in `vite.config.ts` unter `optimizeDeps.include` stehen** (rhino3dm, occt-import-js): Vite entdeckt sie sonst erst zur Laufzeit, re-optimiert mitten in der Session und lädt die Seite neu — laufende Modell-Loads brechen dann kommentarlos ab.
 - **DOM-Overlay + XR-select:** Touches auf Overlay-UI würden ohne Gegenmaßnahme das XR-`select` (= Modell neu platzieren) auslösen; `startArSession` unterdrückt das via `beforexrselect`. Beim Hinzufügen neuer Overlay-Elemente `pointer-events: auto` nicht vergessen.
 
 ## Verifikation vor Commits

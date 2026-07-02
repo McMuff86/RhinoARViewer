@@ -5,6 +5,7 @@ import { applyAppearance, DEFAULT_APPEARANCE, type Appearance } from './appearan
 import { createReticle, isArSupported, startArSession, type ArSessionHandle } from './ar/session';
 import { load3dm } from './loaders/load3dm';
 import { loadGlb } from './loaders/loadGlb';
+import { loadStep } from './loaders/loadStep';
 import type { LoadedModel } from './loaders/types';
 
 const viewport = document.getElementById('viewport') as HTMLElement;
@@ -139,8 +140,10 @@ async function loadFromBuffer(buffer: ArrayBuffer, fileName: string): Promise<vo
       model = await load3dm(buffer);
     } else if (lower.endsWith('.glb') || lower.endsWith('.gltf')) {
       model = await loadGlb(buffer);
+    } else if (lower.endsWith('.step') || lower.endsWith('.stp')) {
+      model = await loadStep(buffer);
     } else {
-      throw new Error('Nicht unterstütztes Format. Bitte .3dm oder .glb/.gltf wählen.');
+      throw new Error('Nicht unterstütztes Format. Bitte .3dm, .glb/.gltf oder .step/.stp wählen.');
     }
     showModel(model, fileName);
   } catch (error) {

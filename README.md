@@ -42,9 +42,9 @@ adb reverse tcp:5180 tcp:5180
 
 | Format | Unterstützung |
 |---|---|
-| `.3dm` | Mesh-Objekte immer; BREPs/Extrusions nur, wenn die Datei **mit Render-Meshes gespeichert** wurde (in Rhino einmal schattiert anzeigen, dann speichern). Einheiten und Z-up werden automatisch korrigiert. |
+| `.3dm` | Mesh-Objekte immer; BREPs/Extrusions nur, wenn die Datei **mit Render-Meshes gespeichert** wurde (in Rhino einmal schattiert anzeigen, dann speichern). Einheiten, Z-up, Render-Material-Farbe/-Transparenz und Layer-Sichtbarkeit werden übernommen. |
 | `.glb` / `.gltf` | Direkt (Y-up, Meter gemäß Spezifikation) |
-| `.step` | Noch nicht — bis dahin in Rhino öffnen und als .3dm/.glb speichern (geplant: ROADMAP M4) |
+| `.step` / `.stp` | Direkt — OpenCascade (WASM) tesselliert im Browser, inkl. Farben. Annahme: Z-up, Millimeter (STEP-Konvention). |
 
 Grasshopper-Geometrie: vor dem Speichern in ein Mesh wandeln (BREPs aus GH haben keine Render-Meshes). Live-Streaming aus GH ist als Phase M5 geplant (`docs/adr/006`).
 

@@ -1,17 +1,8 @@
 import type rhino3dm from 'rhino3dm';
+import type { ParsedMesh } from './types';
 
 export type RhinoModule = Awaited<ReturnType<typeof rhino3dm>>;
-
-export interface ParsedMesh {
-  positions: Float32Array;
-  indices: Uint32Array;
-  normals: Float32Array | null;
-  /** 0xRRGGBB display color, or null when the object has no usable color. */
-  color: number | null;
-  /** 0.05–1, from the render material's transparency (1 = opaque). */
-  opacity: number;
-  name: string;
-}
+export type { ParsedMesh };
 
 export interface Parsed3dm {
   meshes: ParsedMesh[];
