@@ -7,28 +7,52 @@ import {
   MeshStandardMaterial,
   Uint32BufferAttribute,
 } from 'three';
-import rhino3dm from 'rhino3dm';
-import wasmUrl from 'rhino3dm/rhino3dm.wasm?url';
-import { parse3dm, type RhinoModule } from './parse3dm';
+import type { Parsed3dm } from './parse3dm';
+import type { Worker3dmRequest, Worker3dmResponse } from './worker3dm';
 import { buildModelCorrection } from '../geometry/units';
 import type { LoadedModel } from './types';
 
-let rhinoPromise: Promise<RhinoModule> | null = null;
+let worker: Worker | null = null;
+let nextRequestId = 1;
+const pending = new Map<number, { resolve: (p: Parsed3dm) => void; reject: (e: Error) => void }>();
 
-function getRhino(): Promise<RhinoModule> {
-  // rhino3dm's emscripten loader fetches the .wasm relative to its own
-  // script URL, which breaks under Vite's bundling — point it explicitly.
-  rhinoPromise ??= (rhino3dm as unknown as (opts: object) => Promise<RhinoModule>)({
-    locateFile: () => wasmUrl,
+function getWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(new URL('./worker3dm.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (event: MessageEvent<Worker3dmResponse>) => {
+      const request = pending.get(event.data.id);
+      if (!request) return;
+      pending.delete(event.data.id);
+      if (event.data.ok) {
+        request.resolve(event.data.parsed);
+      } else {
+        request.reject(new Error(event.data.message));
+      }
+    };
+    worker.onerror = (event) => {
+      const error = new Error(event.message || '.3dm-Worker ist abgestürzt.');
+      for (const request of pending.values()) request.reject(error);
+      pending.clear();
+      worker?.terminate();
+      worker = null; // next call spawns a fresh worker
+    };
+  }
+  return worker;
+}
+
+function parseInWorker(data: ArrayBuffer): Promise<Parsed3dm> {
+  return new Promise((resolve, reject) => {
+    const id = nextRequestId++;
+    pending.set(id, { resolve, reject });
+    const message: Worker3dmRequest = { id, data };
+    getWorker().postMessage(message, [data]); // transfer, don't copy
   });
-  return rhinoPromise;
 }
 
 const DEFAULT_COLOR = 0x9aa0a6;
 
 export async function load3dm(data: ArrayBuffer): Promise<LoadedModel> {
-  const rhino = await getRhino();
-  const parsed = parse3dm(rhino, new Uint8Array(data));
+  const parsed = await parseInWorker(data);
 
   if (parsed.meshes.length === 0) {
     const detail = parsed.warnings.length > 0 ? ` ${parsed.warnings.join(' ')}` : '';

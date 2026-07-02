@@ -4,14 +4,21 @@ test('page loads with 3D preview and desktop fallback', async ({ page }) => {
   await page.goto('/');
 
   await expect(page).toHaveTitle('Rhino AR Viewer');
-  await expect(page.locator('#viewport canvas')).toBeVisible();
+  await expect(page.locator('#viewport > canvas')).toBeVisible(); // three.js canvas, not the QR canvas
 
   // Desktop browsers have no immersive-ar → button disabled, fallback hint shown.
   await expect(page.locator('#btn-ar')).toBeDisabled();
   await expect(page.locator('#status')).toContainText('Kein AR verfügbar');
 });
 
-test('loads the bundled .3dm sample through rhino3dm WASM', async ({ page }) => {
+test('desktop shows a QR code with the LAN URL for the phone', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.locator('#qr-panel')).toBeVisible();
+  await expect(page.locator('#qr-url')).toContainText('https://');
+});
+
+test('loads the bundled .3dm sample through rhino3dm WASM (worker)', async ({ page }) => {
   await page.goto('/');
 
   await page.locator('#model-select').selectOption('sample-3dm');

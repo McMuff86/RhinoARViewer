@@ -91,9 +91,42 @@ function save(doc, dir, name) {
   save(doc, fixturesDir, 'extrusion-no-rendermesh.3dm');
 }
 
+// --- Fixture 5: visibility — one visible mesh, one hidden object, one hidden layer ---
+{
+  const doc = newDocMillimeters();
+
+  // Real Rhino files always have a default layer at index 0.
+  const defaultLayer = new rhino.Layer();
+  defaultLayer.name = 'Default';
+  const defaultLayerIndex = doc.layers().add(defaultLayer);
+
+  const hiddenLayer = new rhino.Layer();
+  hiddenLayer.name = 'Hidden Layer';
+  hiddenLayer.visible = false;
+  const hiddenLayerIndex = doc.layers().add(hiddenLayer);
+
+  const visibleAttributes = new rhino.ObjectAttributes();
+  visibleAttributes.name = 'visible-box';
+  visibleAttributes.layerIndex = defaultLayerIndex;
+  doc.objects().add(makeBoxMesh(100, 100, 100), visibleAttributes);
+
+  const hiddenAttributes = new rhino.ObjectAttributes();
+  hiddenAttributes.name = 'hidden-box';
+  hiddenAttributes.layerIndex = defaultLayerIndex;
+  hiddenAttributes.visible = false;
+  doc.objects().add(makeBoxMesh(200, 200, 200), hiddenAttributes);
+
+  const onHiddenLayer = new rhino.ObjectAttributes();
+  onHiddenLayer.name = 'box-on-hidden-layer';
+  onHiddenLayer.layerIndex = hiddenLayerIndex;
+  doc.objects().add(makeBoxMesh(300, 300, 300), onHiddenLayer);
+
+  save(doc, fixturesDir, 'visibility.3dm');
+}
+
 // --- Self-verification: read fixtures back and print a summary ---
 import { readFileSync } from 'node:fs';
-for (const name of ['mesh-box.3dm', 'empty.3dm', 'curve-only.3dm', 'extrusion-no-rendermesh.3dm']) {
+for (const name of ['mesh-box.3dm', 'empty.3dm', 'curve-only.3dm', 'extrusion-no-rendermesh.3dm', 'visibility.3dm']) {
   const doc = rhino.File3dm.fromByteArray(new Uint8Array(readFileSync(join(fixturesDir, name))));
   const unit = doc.settings().modelUnitSystem;
   console.log(

@@ -61,6 +61,12 @@ describe('parse3dm', () => {
     expect(result.warnings[0]).toContain('Render-Meshes');
   });
 
+  it('skips hidden objects and objects on hidden layers, like Rhino does', () => {
+    const result = parse3dm(rhino, fixture('visibility.3dm'));
+    expect(result.meshes).toHaveLength(1);
+    expect(result.meshes[0]!.name).toBe('visible-box');
+  });
+
   it('throws a readable error on garbage input', () => {
     expect(() => parse3dm(rhino, new Uint8Array([1, 2, 3, 4]))).toThrow(/3dm/);
   });

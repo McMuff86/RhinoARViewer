@@ -9,27 +9,29 @@ Ziel: Rhino-Geometrie (.3dm, glTF, später STEP und Live-Grasshopper) per Smartp
 - [x] .3dm-Fixtures + eingecheckte Testdaten (`app/scripts/make-fixtures.mjs`)
 - [x] CLAUDE.md/AGENTS.md/README neu
 
-## M1 — „Hello AR" ✅ (Code; Gerätetest offen)
+## M1 — „Hello AR" ✅
 
 - [x] WebXR `immersive-ar` mit Hit-Test, Reticle, Tap-Platzierung (aufrecht, zur Kamera gedreht)
 - [x] DOM-Overlay (Hinweis + „AR beenden"), Testwürfel als eingebautes Modell
 - [x] Desktop-Fallback: 3D-Vorschau mit OrbitControls
-- [ ] **Manueller Test auf ARCore-Android** (Anleitung im README) — bei Problemen: Issue mit Gerät/Chrome-Version notieren
+- [x] Manueller Test auf ARCore-Android — erfolgreich (2026-07-02)
 
-## M2 — Echte Geometrie (begonnen)
+## M2 — Echte Geometrie ✅ (Rest → M3/Später)
 
 - [x] GLB-Loader (three.js GLTFLoader)
 - [x] .3dm-Loader client-seitig (rhino3dm-WASM): Meshes direkt, BREPs/Extrusions via gespeicherte Render-Meshes, klare Fehlermeldung sonst
 - [x] Einheiten/Achsen-Korrektur (mm→m usw., Z-up→Y-up als echte Rotation)
 - [x] Datei öffnen (.3dm/.glb/.gltf) + gebündeltes Beispielmodell
-- [ ] Modell in AR skalieren/rotieren (Gesten oder Slider im Overlay)
-- [ ] Größere Dateien: Parsing in Web Worker verschieben (UI-Freeze vermeiden)
-- [ ] Materialien/Layer aus .3dm feiner übernehmen (Transparenz, Layer-Sichtbarkeit)
+- [x] Modell in AR skalieren/rotieren (Slider im Overlay; `beforexrselect` verhindert Fehl-Platzierungen)
+- [x] .3dm-Parsing im Web Worker (kein UI-Freeze bei großen Dateien)
+- [x] Layer-/Objekt-Sichtbarkeit aus .3dm respektiert (versteckte Objekte/Layer werden übersprungen)
 
 ## M3 — PoC-Polish
 
-- [ ] Lade-Indikator + Fehler-UI verfeinern
-- [ ] QR-Code auf der Desktop-Seite mit der LAN-URL (Handy scannt statt tippt)
+- [x] QR-Code auf der Desktop-Seite mit der LAN-URL (Handy scannt statt tippt)
+- [x] Basis-Lade-Zustand (Controls gesperrt während Parsing) — Feinschliff offen:
+- [ ] Lade-Indikator (Spinner) + Fehler-UI verfeinern
+- [ ] Materialien aus .3dm feiner übernehmen (Transparenz, Textur-Basisfarben)
 - [ ] Beleuchtung: WebXR Light Estimation (optionales Feature)
 - [ ] Schattenfänger-Ebene (weicher Kontaktschatten) für bessere Verankerung
 

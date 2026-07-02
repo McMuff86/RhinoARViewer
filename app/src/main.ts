@@ -1,4 +1,5 @@
 import { BoxGeometry, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial } from 'three';
+import QRCode from 'qrcode';
 import { Viewer } from './scene';
 import { createReticle, isArSupported, startArSession, type ArSessionHandle } from './ar/session';
 import { load3dm } from './loaders/load3dm';
@@ -13,6 +14,14 @@ const modelSelect = document.getElementById('model-select') as HTMLSelectElement
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
 const overlayRoot = document.getElementById('ar-overlay') as HTMLElement;
 const arHint = document.getElementById('ar-hint') as HTMLElement;
+const arAdjustPanel = document.getElementById('ar-adjust') as HTMLElement;
+const scaleSlider = document.getElementById('scale-slider') as HTMLInputElement;
+const scaleValue = document.getElementById('scale-value') as HTMLElement;
+const rotateSlider = document.getElementById('rotate-slider') as HTMLInputElement;
+const rotateValue = document.getElementById('rotate-value') as HTMLElement;
+const qrPanel = document.getElementById('qr-panel') as HTMLElement;
+const qrCanvas = document.getElementById('qr-canvas') as HTMLCanvasElement;
+const qrUrl = document.getElementById('qr-url') as HTMLElement;
 
 const viewer = new Viewer(viewport);
 const reticle = createReticle();
@@ -24,6 +33,29 @@ function setStatus(text: string, isError = false): void {
   statusEl.textContent = text;
   statusEl.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
+
+/** Disable inputs while a model is parsing so loads don't overlap. */
+function setBusy(busy: boolean): void {
+  modelSelect.disabled = busy;
+  fileInput.disabled = busy;
+}
+
+function applyAdjustFromSliders(): void {
+  const scale = Number(scaleSlider.value) / 100;
+  const yawDeg = Number(rotateSlider.value);
+  scaleValue.textContent = `${scaleSlider.value} %`;
+  rotateValue.textContent = `${rotateSlider.value}°`;
+  viewer.setAdjust({ scale, yawDeg });
+}
+
+function resetAdjustSliders(): void {
+  scaleSlider.value = '100';
+  rotateSlider.value = '0';
+  applyAdjustFromSliders();
+}
+
+scaleSlider.addEventListener('input', applyAdjustFromSliders);
+rotateSlider.addEventListener('input', applyAdjustFromSliders);
 
 /** Built-in fallback model so the app works without any file. */
 function makeTestCube(): LoadedModel {
@@ -56,6 +88,7 @@ function showModel(model: LoadedModel, label: string): void {
 async function loadFromBuffer(buffer: ArrayBuffer, fileName: string): Promise<void> {
   const lower = fileName.toLowerCase();
   setStatus(`Lade ${fileName} …`);
+  setBusy(true);
   try {
     let model: LoadedModel;
     if (lower.endsWith('.3dm')) {
@@ -68,6 +101,8 @@ async function loadFromBuffer(buffer: ArrayBuffer, fileName: string): Promise<vo
     showModel(model, fileName);
   } catch (error) {
     setStatus(error instanceof Error ? error.message : `Fehler beim Laden von ${fileName}.`, true);
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -78,12 +113,15 @@ async function selectBuiltinModel(value: string): Promise<void> {
   }
   if (value === 'sample-3dm') {
     setStatus('Lade Beispiel-Box …');
+    setBusy(true);
     try {
       const response = await fetch('models/sample-box.3dm');
       if (!response.ok) throw new Error('Beispieldatei nicht gefunden.');
       showModel(await load3dm(await response.arrayBuffer()), 'Beispiel-Box (.3dm)');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Beispieldatei konnte nicht geladen werden.', true);
+    } finally {
+      setBusy(false);
     }
   }
 }
@@ -107,6 +145,8 @@ arButton.addEventListener('click', async () => {
     viewer.enterArMode();
     document.body.classList.add('in-ar');
     arHint.textContent = 'Bewege das Handy langsam, bis der Ring erscheint – dann tippen.';
+    arAdjustPanel.hidden = true;
+    resetAdjustSliders();
 
     arSession = await startArSession({
       renderer: viewer.renderer,
@@ -115,6 +155,7 @@ arButton.addEventListener('click', async () => {
       onPlace: (placement) => {
         viewer.placeModel(placement);
         arHint.textContent = 'Tippe erneut, um das Modell neu zu platzieren.';
+        arAdjustPanel.hidden = false;
       },
       onEnd: () => {
         arSession = null;
@@ -136,6 +177,19 @@ arButton.addEventListener('click', async () => {
 
 exitButton.addEventListener('click', () => void arSession?.end());
 
+/** On desktop, show a QR code with the LAN URL so the phone can scan it. */
+async function showQrPanel(): Promise<void> {
+  const url = __LAN_URL__ ?? (location.hostname !== 'localhost' ? location.origin : null);
+  if (!url) return;
+  try {
+    await QRCode.toCanvas(qrCanvas, url, { width: 148, margin: 1 });
+    qrUrl.textContent = url;
+    qrPanel.hidden = false;
+  } catch {
+    // QR is a convenience — never block the app over it.
+  }
+}
+
 async function init(): Promise<void> {
   showModel(makeTestCube(), 'Testwürfel');
 
@@ -146,6 +200,7 @@ async function init(): Promise<void> {
     arButton.disabled = true;
     arButton.title = 'WebXR AR wird von diesem Browser nicht unterstützt.';
     setStatus('Kein AR verfügbar — 3D-Vorschau aktiv. Auf einem ARCore-Android in Chrome öffnen (HTTPS).');
+    await showQrPanel();
   }
 }
 

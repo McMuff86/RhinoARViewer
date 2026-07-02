@@ -55,6 +55,11 @@ export async function startArSession(options: ArSessionOptions): Promise<ArSessi
 
   const session = await xr.requestSession('immersive-ar', sessionInit);
 
+  // Touches on overlay UI (sliders, buttons) must not fire XR 'select',
+  // which would re-place the model. beforexrselect only reaches elements
+  // that actually receive the touch (pointer-events: auto).
+  options.overlayRoot?.addEventListener('beforexrselect', (event) => event.preventDefault());
+
   renderer.xr.setReferenceSpaceType('local');
   await renderer.xr.setSession(session as unknown as Parameters<typeof renderer.xr.setSession>[0]);
 

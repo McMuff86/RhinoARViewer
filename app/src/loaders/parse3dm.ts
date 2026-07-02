@@ -61,6 +61,8 @@ export function parse3dm(rhino: RhinoModule, data: Uint8Array): Parsed3dm {
       if (!geometry) continue;
 
       const attributes = obj.attributes();
+      // Mirror Rhino: hidden objects and objects on hidden layers don't render.
+      if (isHidden(doc, attributes)) continue;
       const name: string = attributes?.name || `Objekt ${i + 1}`;
       const color = extractColor(r, doc, attributes);
       const objectType = enumValue(geometry.objectType);
@@ -108,6 +110,20 @@ export function parse3dm(rhino: RhinoModule, data: Uint8Array): Parsed3dm {
   }
 
   return { meshes, unitSystem, warnings };
+}
+
+function isHidden(doc: any, attributes: any): boolean {
+  try {
+    if (attributes?.visible === false) return true;
+    const layerIndex = attributes?.layerIndex;
+    if (typeof layerIndex === 'number' && layerIndex >= 0) {
+      const layer = doc.layers().get(layerIndex);
+      if (layer && layer.visible === false) return true;
+    }
+  } catch {
+    // If visibility can't be determined, show the object rather than drop it.
+  }
+  return false;
 }
 
 /** Emscripten enums are objects with a numeric `.value`; plain numbers pass through. */

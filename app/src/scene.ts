@@ -12,6 +12,7 @@ import {
 import type { Object3D } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Placement } from './ar/placement';
+import { composeModelTransform, DEFAULT_ADJUST, type ModelAdjust } from './ar/modelTransform';
 
 /**
  * Owns renderer, scene graph and the render loop. Works in two modes:
@@ -27,6 +28,8 @@ export class Viewer {
   private readonly grid: GridHelper;
   private readonly modelRoot: Group;
   private frameHook: ((frame: XRFrame | undefined) => void) | null = null;
+  private lastPlacement: Placement | null = null;
+  private adjust: ModelAdjust = { ...DEFAULT_ADJUST };
 
   constructor(container: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
@@ -102,21 +105,40 @@ export class Viewer {
     this.grid.visible = false;
     // Hidden until the user taps a detected surface.
     this.modelRoot.visible = false;
+    this.lastPlacement = null;
+    this.adjust = { ...DEFAULT_ADJUST };
     this.modelRoot.position.set(0, 0, 0);
     this.modelRoot.quaternion.identity();
+    this.modelRoot.scale.set(1, 1, 1);
   }
 
   placeModel(placement: Placement): void {
-    this.modelRoot.position.copy(placement.position);
-    this.modelRoot.quaternion.copy(placement.rotation);
+    this.lastPlacement = placement;
+    this.applyPlacement();
     this.modelRoot.visible = true;
+  }
+
+  /** Live adjustments from the AR overlay sliders (scale / rotation). */
+  setAdjust(adjust: ModelAdjust): void {
+    this.adjust = adjust;
+    if (this.lastPlacement) this.applyPlacement();
+  }
+
+  private applyPlacement(): void {
+    if (!this.lastPlacement) return;
+    const t = composeModelTransform(this.lastPlacement, this.adjust);
+    this.modelRoot.position.copy(t.position);
+    this.modelRoot.quaternion.copy(t.rotation);
+    this.modelRoot.scale.copy(t.scale);
   }
 
   exitArMode(): void {
     this.grid.visible = true;
     this.modelRoot.visible = true;
+    this.lastPlacement = null;
     this.modelRoot.position.set(0, 0, 0);
     this.modelRoot.quaternion.identity();
+    this.modelRoot.scale.set(1, 1, 1);
     this.frameModel();
   }
 }
