@@ -1,71 +1,18 @@
 # ===========================
-# Unity
+# Node.js (app/ und server/)
 # ===========================
 
-# Library folder (regenerated)
-unity/*/[Ll]ibrary/
-unity/*/[Tt]emp/
-unity/*/[Oo]bj/
-unity/*/[Bb]uild/
-unity/*/[Bb]uilds/
-unity/*/[Ll]ogs/
-unity/*/[Uu]ser[Ss]ettings/
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.local
+.env.*.local
 
-# MemoryCaptures
-unity/*/[Mm]emoryCaptures/
-
-# Recordings
-unity/*/[Rr]ecordings/
-
-# Asset meta data (sometimes)
-unity/*/*.pidb.meta
-unity/*/*.pdb.meta
-unity/*/*.mdb.meta
-
-# Unity3D generated
-unity/*/*.csproj
-unity/*/*.unityproj
-unity/*/*.sln
-unity/*/*.suo
-unity/*/*.tmp
-unity/*/*.user
-unity/*/*.userprefs
-unity/*/*.pidb
-unity/*/*.booproj
-unity/*/*.svd
-unity/*/*.pdb
-unity/*/*.mdb
-unity/*/*.opendb
-unity/*/*.VC.db
-
-# Unity profiler
-unity/*/*.apk
-unity/*/*.aab
-unity/*/*.unitypackage
-unity/*/*.unitypackage.meta
-
-# Crashlytics
-unity/*/crashlytics-build.properties
-
-# Builds (keep out of version control)
-unity/*/*.apk
-unity/*/*.aab
-unity/*/*.ipa
-
-# ===========================
-# Node.js (Relay Server)
-# ===========================
-
-server/node_modules/
-server/.env
-server/.env.local
-server/.env.*.local
-server/npm-debug.log*
-server/yarn-debug.log*
-server/yarn-error.log*
-server/.pnpm-debug.log*
-server/dist/
-server/coverage/
+# Playwright
+app/test-results/
+app/playwright-report/
 
 # ===========================
 # C# / Visual Studio (GH Plugin)
@@ -79,75 +26,40 @@ grasshopper/**/*.suo
 grasshopper/**/*.cache
 grasshopper/**/packages/
 grasshopper/**/*.nupkg
-
-# ReSharper
-grasshopper/**/_ReSharper*/
-grasshopper/**/*.[Rr]e[Ss]harper
-grasshopper/**/*.DotSettings.user
+*.dll
+*.gha
 
 # ===========================
 # IDE / Editor
 # ===========================
 
-# Visual Studio Code
 .vscode/
 *.code-workspace
-
-# JetBrains
 .idea/
 *.iml
-
-# Visual Studio
 *.sln.docstates
 
 # ===========================
-# OS Generated
+# OS
 # ===========================
 
-# macOS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-
-# Windows
 Thumbs.db
-ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
 
-# Linux
-*~
-.fuse_hidden*
-.Trash-*
-.nfs*
-
 # ===========================
-# Project Specific
+# Projekt
 # ===========================
 
-# Temporary files
 .tmp/
 *.tmp
 *.temp
-*.log
-
-# Credentials (NEVER commit)
 credentials.json
 token.json
 *.pem
 *.key
-.env
-
-# Test outputs
-test-results/
-coverage/
-
-# Build artifacts
-*.dll
-*.gha
 
 # Claude/AI working files
 .claude/
